@@ -27,47 +27,67 @@ define( 'APPTA_TOKEN', '0100000065f275e971ca252fa6c53b4cf8821eda58d04f7fc557d288
 */
 defined( 'ABSPATH' ) or die( '¡Sin trampas!' );
 
+require APPTA_PATH . 'includes/core.php';
+
+// LLAMAMOS CLASES
+require_once( APPTA_PATH . '/classes/token.php' );
+
+
 function appta_custom_error_log( $message ) {
     // Formatea el mensaje con la fecha y hora
     $log_message = '[' . date( 'Y-m-d H:i:s' ) . '] ' . $message . "\n";
-
     // Añade el mensaje al archivo de registro
     error_log( $log_message, 3, APPTA_URL_LOG );
 }
 
-
-
 function appta_login_token_api(){
-    $api_url = 'https://wikanapi.appta.com.co/login/auth';
-    $headers = array( 
-        'Content-Type: application/json',
-        'usuario: 900665403',
-        'clave: PJms9698000@',
-        'Authorization: Token '.APPTA_TOKEN
-    );
-    
-    $curl = curl_init();
-    curl_setopt_array($curl, array(
-        CURLOPT_URL =>  $api_url,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-        CURLOPT_CUSTOMREQUEST => 'GET',
-        CURLOPT_HTTPHEADER => $headers,
-    ));
-    //execute post
-    $response = curl_exec($curl);
-    $err = curl_error($curl);
-    if($err){
-        appta_custom_error_log('ERROR API ' . $err. "\n");
+
+    $APPTAToken = new APPTAtoken();
+    $update = false;
+    $tokenA = $APPTAToken->get_token();
+    $token = $tokenA['token'];
+    // Obtener la fecha
+    $fa = strtotime(date('Y-m-d H:i:s'));
+    // Obtener la fecha siguiente
+    $ft = strtotime($tokenA['fecha']);
+    // Calcular la diferencia en horas
+    $dh =  (abs($fa - $ft)) / 3600;
+    // Verificar si la diferencia es mayor a 3 horas
+    if ($dh >= 3) { $update = true;  }
+    if($update){
+        $api_url = 'https://wikanapi.appta.com.co/login/auth';
+        $headers = array( 
+            'Content-Type: application/json',
+            'usuario: 900665403',
+            'clave: PJms9698000@',
+            'Authorization: Token '.APPTA_TOKEN
+        );
+        
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_URL =>  $api_url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => $headers,
+        ));
+        //execute post
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+        if($err){
+            appta_custom_error_log('ERROR API ' . $err. "\n");
+        }
+        $data = json_decode($response);
+        if(property_exists($data, 'mensaje')){
+            appta_custom_error_log('ERROR API ' . $data->mensaje . "\n");
+        }else{
+            $token = $data->token;
+            $date = date('Y-m-d H:i:s');
+            $update_result = $APPTAToken->update_token(1,$token,$date);
+        }
     }
-    $data = json_decode($response);
-    $token = 'false';
-    if(property_exists($data, 'mensaje')){
-        appta_custom_error_log('ERROR API ' . $data->mensaje . "\n");
-    }else{
-        $token = $data->token ;
-    }
+    //echo '<h3> TOKEEEN:'.$token;
     return $token;
 }
 
@@ -75,6 +95,7 @@ function appta_call_api($url, $postfields, $request){
     
     $api_url = 'https://wikanapi.appta.com.co/'.$url;
     $token = appta_login_token_api();
+    appta_custom_error_log('TOKEN: '.$token);
     $headers = array( 
         'Authorization: Bearer '.$token
     );
@@ -104,7 +125,6 @@ function appta_call_api($url, $postfields, $request){
         appta_custom_error_log('ERROR API ' . $err. "\n");
     }
 	$data = json_decode($response);
-
     curl_close($curl);
     return $data;
 }
@@ -135,7 +155,7 @@ require APPTA_PATH . 'includes/crons.php';
 function APPTAadmin_menu()
 {
     global $supporthost_sample_page;
-    add_menu_page('APPTATEST', 'APPTATEST', 'activate_plugins', 'APPTATEST', 'APPTAread_post', 'dashicons-database');
+    add_menu_page('APPTATEST', 'APPTATEST', 'activate_plugins', 'APPTATEST', 'APPTAupdate_all_oportunidades', 'dashicons-database');
 }
 
 add_action('admin_menu', 'APPTAadmin_menu');
