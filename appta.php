@@ -3,9 +3,9 @@
 * Plugin Name: APPTA - API conexión
 * Description: Este plugin esta construido para realizar conexiones API con APPTA
 * Version:     1.0
-* Plugin URI: https://github.com/Fullstack-belka/Belka-code
-* Author:      Belkacompany
-* Author URI:  https://belkacompany.com/
+* Plugin URI: https://github.com/Juaneswfr/wikan-appta
+* Author:      JERA
+* Author URI:  https://jera.dev/
 * License:     GPLv2 or later
 * License URI: https://www.gnu.org/licenses/gpl-2.0.html
 * Text Domain: sms
